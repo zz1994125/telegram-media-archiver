@@ -1,63 +1,84 @@
+<div align="center">
+
 # Telegram Media Archiver
 
-### YouTube, Bilibili, TikTok, Douyin & Xiaohongshu/RedNote Downloader for Telegram and NAS
+### Telegram 媒体下载与 NAS 归档机器人
 
-**Self-hosted Telegram bot for downloading and archiving social media videos, audio, thumbnails, descriptions, and metadata to local storage or a NAS. Includes yt-dlp platforms today, with dedicated Douyin Downloader and Xiaohongshu/RedNote Downloader adapters on the roadmap.**
+[![Container](https://github.com/zz1994125/telegram-media-archiver/actions/workflows/container.yml/badge.svg)](https://github.com/zz1994125/telegram-media-archiver/actions/workflows/container.yml)
+[![License](https://img.shields.io/github/license/zz1994125/telegram-media-archiver?style=flat-square)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/zz1994125/telegram-media-archiver?style=flat-square&color=fda7df)](https://github.com/zz1994125/telegram-media-archiver/stargazers)
+[![Forks](https://img.shields.io/github/forks/zz1994125/telegram-media-archiver?style=flat-square&color=55efc4)](https://github.com/zz1994125/telegram-media-archiver/forks)
+[![Docker](https://img.shields.io/badge/Docker-amd64%20%7C%20arm64-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/zz1994125/telegram-media-archiver/pkgs/container/telegram-media-archiver)
+[![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=flat-square&logo=python&logoColor=white)](Dockerfile)
 
-把 Telegram 变成私人媒体收件箱：发送一个社交媒体链接，自动下载媒体与元数据到自己的电脑或 NAS，再通过聊天按钮分类归档。
+**把 Telegram 变成私人媒体收件箱：发送一个链接，自动下载到电脑或 NAS，再通过聊天按钮预览、分类和归档。**
 
-## Why / 为什么做这个项目
+YouTube · Bilibili · TikTok · Douyin · Xiaohongshu / RedNote · Instagram · X / Twitter
 
-收藏链接并不等于保存内容。原帖可能被删除、平台可能失效，普通下载 Bot 又往往只把文件发回聊天，无法形成长期素材库。
+</div>
+
+---
+
+## 📖 项目介绍
+
+收藏链接不等于保存内容。原帖可能删除、失效或变成不可访问，普通下载 Bot 又通常只把文件发回聊天，无法沉淀为长期素材库。
 
 Telegram Media Archiver 提供一条简单、可迁移的工作流：
 
 ```text
-Telegram link → yt-dlp → local/NAS folder → archive button
+Telegram 链接 → yt-dlp 下载 → 本地 / NAS 保存 → Telegram 按钮预览与分类
 ```
 
-所有内容都是普通文件，不依赖专有数据库；即使停止运行本项目，已归档内容仍可直接访问。
+所有内容都保存为普通文件，不依赖数据库或专有格式。即使以后停止运行本项目，已有媒体和元数据仍可直接访问。
 
-## Features / 功能
+## 📑 项目功能
 
-- Telegram-first inbox：手机转发链接即可保存
-- 基于 `yt-dlp`，覆盖 YouTube、Bilibili、TikTok、Instagram、X、Reddit 等站点
-- 为 Douyin Downloader 与 Xiaohongshu/RedNote Downloader 保留明确适配方向
-- 保存媒体、缩略图、简介、完整元数据和原始链接
-- 每条内容使用独立文件夹，按日期归档
-- Telegram 内分类按钮与失败重试
-- 下载完成后可点击 **Send to Telegram**，将媒体发送回当前 Telegram 对话供手机预览
-- 可配置用户白名单，阻止陌生人消耗服务器流量
-- 拒绝私有网络 URL，降低 SSRF 风险
-- 单个 Docker 容器，无数据库、无 Web 管理后台
-- `amd64` 与 `arm64` 镜像，适用于服务器、NAS、树莓派、macOS 和 Windows
-- GitHub Actions 自动测试并发布 GHCR 镜像
+<details open>
+<summary><strong>点击展开或收起功能清单</strong></summary>
 
-## Supported platforms / 平台支持
+- ✅ 在 Telegram 中发送一个或多个媒体链接
+- ✅ 自动保存视频、音频、缩略图、简介、完整元数据和原始链接
+- ✅ 每条内容使用独立文件夹，并按日期整理
+- ✅ Telegram 内自定义分类按钮，一键移动完整内容文件夹
+- ✅ 下载完成后点击 **📲 Send to Telegram**，直接发送到当前聊天供手机查看
+- ✅ MP4 优先以流媒体视频发送，不兼容时自动改为文件发送
+- ✅ 图文内容逐张发送，超过 Telegram 限制的文件保留在本地
+- ✅ 下载失败后可在 Telegram 中一键重试
+- ✅ 支持 Telegram 用户白名单，防止陌生人消耗服务器资源
+- ✅ 拒绝私有网络和本地网络 URL，降低 SSRF 风险
+- ✅ 基于 `yt-dlp`，兼容其支持的大量公开媒体网站
+- ✅ 可选 MCP Server，让 Codex、Claude 等 AI 客户端调用下载与归档工具
+- ✅ 单容器部署，无数据库、无 Web 后台
+- ✅ GitHub Actions 自动测试并构建 `amd64` / `arm64` 镜像
+- ✅ 适用于 Linux、VPS、NAS、树莓派、macOS 和 Windows
 
-| Platform | Status | Notes |
-|---|---:|---|
-| YouTube / YouTube Shorts | ✅ | Video, audio, thumbnail and metadata |
-| Bilibili | ✅ | Availability depends on region and login requirements |
-| TikTok Downloader | ✅ | Platform changes may require a newer `yt-dlp` |
-| Instagram | ✅ | Private or restricted posts may require cookies |
-| X / Twitter | ✅ | Public media posts |
-| Reddit, Vimeo, SoundCloud | ✅ | Handled by `yt-dlp` |
-| Other `yt-dlp` sites | 🟡 | Best effort |
-| Douyin Downloader | 🟡 | Dedicated cookie-aware adapter planned; not claimed stable yet |
-| Xiaohongshu / RedNote Downloader | 🟡 | Dedicated cookie-aware adapter planned; not claimed stable yet |
+</details>
 
-平台经常调整接口；遇到下载失败时，首先拉取最新镜像并确认该链接可公开访问。
+## 🔗 支持链接
 
-## Quick start / 快速开始
+| 平台 | 状态 | 示例 |
+|---|:---:|---|
+| YouTube / Shorts | ✅ | `youtube.com/watch?...`、`youtu.be/...` |
+| Bilibili | ✅ | `bilibili.com/video/...`、`b23.tv/...` |
+| TikTok Downloader | ✅ | `tiktok.com/@user/video/...` |
+| Instagram | ✅ | 公开 Reels、视频和帖子 |
+| X / Twitter | ✅ | 公开媒体帖子 |
+| Reddit / Vimeo / SoundCloud | ✅ | 由 `yt-dlp` 处理 |
+| 其他 `yt-dlp` 网站 | 🟡 | 尽力兼容，以 `yt-dlp` 实际支持为准 |
+| Douyin Downloader | 🧪 | 平台限制较多，公开链接可尝试，暂不保证稳定 |
+| Xiaohongshu / RedNote Downloader | 🧪 | 平台限制较多，公开链接可尝试，暂不保证稳定 |
 
-### 1. Create a Telegram bot
+> 平台接口会变化。下载失败时，请先更新镜像并确认链接无需登录、验证码、年龄验证或私有账号权限。
 
-1. Open [@BotFather](https://t.me/BotFather).
-2. Run `/newbot` and copy the token.
-3. Do not paste that token into source code or commit it to Git.
+## 🥣 快速开始
 
-### 2. Configure
+### 1. 创建 Telegram Bot
+
+1. 打开 [@BotFather](https://t.me/BotFather)。
+2. 发送 `/newbot` 并按提示创建机器人。
+3. 保存 Bot Token，不要把它提交到 GitHub。
+
+### 2. 下载并配置
 
 ```bash
 git clone https://github.com/zz1994125/telegram-media-archiver.git
@@ -65,7 +86,7 @@ cd telegram-media-archiver
 cp .env.example .env
 ```
 
-Edit `.env`:
+编辑 `.env`：
 
 ```dotenv
 TELEGRAM_BOT_TOKEN=replace-with-your-new-token
@@ -76,25 +97,26 @@ PUID=1000
 PGID=1000
 ```
 
-`TELEGRAM_ALLOWED_USERS` accepts comma-separated numeric Telegram user IDs. You can temporarily leave it empty while checking your ID, but configure it before exposing the Bot.
+`TELEGRAM_ALLOWED_USERS` 填写 Telegram 数字用户 ID；多个 ID 使用英文逗号分隔。留空代表任何知道 Bot 用户名的人都能使用，公开部署时不建议留空。
 
-### 3. Run
+### 3. 一键启动
 
 ```bash
 docker compose up -d --build
-docker compose logs -f
 ```
 
-Send a supported URL to the Bot. Downloads appear in `./data` by default.
+查看状态和日志：
 
 ```bash
 docker compose ps
-docker compose down
+docker compose logs -f
 ```
 
-## Deploy a prebuilt GHCR image / 使用预构建镜像
+现在向 Bot 发送受支持的链接，文件默认保存到 `./data`。
 
-After this repository is published, GitHub Actions builds both `linux/amd64` and `linux/arm64` images:
+## 🐳 使用预构建镜像
+
+无需下载源码，直接运行 GitHub Container Registry 镜像：
 
 ```bash
 docker run -d \
@@ -105,23 +127,88 @@ docker run -d \
   ghcr.io/zz1994125/telegram-media-archiver:latest
 ```
 
-Make the container package public under the repository's **Packages** settings after the first successful build.
+镜像支持：
 
-## Device deployment / 各类设备部署
+- `linux/amd64`：常见电脑、服务器和 NAS
+- `linux/arm64`：树莓派、Apple Silicon 和 ARM NAS
 
-| Device | Recommended method |
+## 💻 各类设备部署
+
+| 设备 | 推荐方式 | 数据目录示例 |
+|---|---|---|
+| Ubuntu / Debian / VPS | Docker Compose | `/srv/telegram-archive` |
+| 群晖 Synology | Container Manager | 映射共享文件夹到 `/data` |
+| QNAP / Unraid | Docker / Apps | 映射媒体共享目录到 `/data` |
+| Raspberry Pi 4 / 5 | GHCR `arm64` 镜像 | `/mnt/archive` |
+| macOS | Docker Desktop / OrbStack | `./data` 或外接硬盘目录 |
+| Windows | Docker Desktop | `D:/TelegramArchive` |
+
+Linux 和 NAS 用户可运行 `id` 查看当前用户的 UID / GID，再写入 `.env` 的 `PUID` 和 `PGID`，避免挂载目录出现权限错误。
+
+> GitHub Pages 只能托管静态网页，不能持续运行 Telegram Bot。GitHub 在本项目中负责托管源码、自动测试和容器镜像；Bot 需要部署到持续在线的电脑、NAS、树莓派或服务器。
+
+## 🤖 MCP Server
+
+项目提供可选的 MCP Server，可让支持 Model Context Protocol 的 AI 客户端操作同一个媒体归档目录。
+
+### 可用工具
+
+| MCP Tool | 功能 |
 |---|---|
-| Ubuntu / Debian / VPS | Docker Compose |
-| Synology / QNAP / Unraid | Container Manager with `/data` mapped to a shared folder |
-| Raspberry Pi 4/5 | GHCR `arm64` image |
-| macOS | Docker Desktop or OrbStack |
-| Windows | Docker Desktop; use a shared path such as `D:/TelegramArchive` |
+| `download_media` | 下载一个公开媒体链接到 `inbox` |
+| `list_archive` | 查看最近保存的内容，可按分类筛选 |
+| `archive_media` | 把指定内容移动到 `.env` 中允许的分类 |
 
-For Linux and NAS devices, run `id` and set `PUID`/`PGID` to the owner of the archive folder. This prevents permission errors on bind mounts.
+### Streamable HTTP（推荐部署方式）
 
-GitHub Pages cannot run a Telegram Bot, GitHub Actions is not a permanent server, and Codespaces can stop or be deleted. GitHub should host the source and container image; the Bot itself must run on an always-on device or hosting provider.
+启动独立 MCP 服务：
 
-## Storage layout / 文件结构
+```bash
+docker compose --profile mcp up -d telegram-media-mcp
+```
+
+客户端连接地址：
+
+```text
+http://127.0.0.1:8000/mcp
+```
+
+该端口在 Compose 中只绑定主机回环地址，不会直接暴露到局域网。若需要远程访问，请先使用具备身份验证和 HTTPS 的反向代理，不要把无认证 MCP 端点直接开放到互联网。
+
+### stdio（本机客户端）
+
+支持 stdio 的客户端可直接启动容器：
+
+```json
+{
+  "mcpServers": {
+    "telegram-media-archiver": {
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-e", "MCP_TRANSPORT=stdio",
+        "-v", "/path/to/archive:/data",
+        "ghcr.io/zz1994125/telegram-media-archiver:latest",
+        "python", "-u", "/app/app.py", "mcp"
+      ]
+    }
+  }
+}
+```
+
+把 `/path/to/archive` 改成真实归档目录。MCP 模式不需要 Telegram Bot Token。
+
+## 📲 Telegram 操作流程
+
+1. 向 Bot 发送媒体链接。
+2. Bot 下载内容并回复保存位置。
+3. 点击 **📲 Send to Telegram**，在手机上直接查看媒体。
+4. 点击分类按钮，将完整内容文件夹移动到对应分类。
+5. 下载失败时点击 **Retry** 重新尝试。
+
+Telegram 公共 Bot API 对视频和普通文件的默认上传上限为 50 MB。超过限制的文件不会丢失，仍会保留在本地或 NAS 中。
+
+## 📁 文件结构
 
 ```text
 data/
@@ -134,106 +221,143 @@ data/
 │           ├── Example video [id].webp
 │           └── source.url
 ├── reference/
-│   └── 2026-08-10/Example video/
+│   └── 2026-08-10/
+│       └── Example video/
 └── .telegram-media-archiver-state.json
 ```
 
-The Bot first saves content to `inbox`, then moves the complete folder when an archive button is selected.
+新下载内容先进入 `inbox`。选择分类后，媒体、缩略图、描述、元数据和来源链接会作为一个完整文件夹一起移动。
 
-After a download, tap **Send to Telegram** to upload the saved media back into the current Telegram conversation. MP4 files are sent as streamable videos and fall back to documents when Telegram rejects the codec; image-only posts are sent image by image. The default Telegram Bot API accepts videos and general files up to 50 MB, so larger files stay safely in local storage and the Bot reports that they were skipped.
+## ⚙️ 配置说明
 
-## Configuration / 配置
+| 环境变量 | 必需 | 默认值 | 说明 |
+|---|:---:|---|---|
+| `TELEGRAM_BOT_TOKEN` | 是 | — | BotFather 创建的 Bot Token |
+| `TELEGRAM_ALLOWED_USERS` | 推荐 | 空 | 允许使用 Bot 的 Telegram 数字用户 ID |
+| `ARCHIVER_CATEGORIES` | 否 | `favorites,reference,projects,archive` | Telegram 中显示的归档分类按钮 |
+| `ARCHIVER_DOWNLOAD_TIMEOUT` | 否 | `900` | 单个链接的下载超时秒数 |
+| `MCP_TRANSPORT` | MCP | `streamable-http` | `streamable-http` 或 `stdio` |
+| `MCP_HOST` | MCP | `127.0.0.1` | HTTP 监听地址；容器服务会覆盖为 `0.0.0.0` |
+| `MCP_PORT` | MCP | `8000` | Streamable HTTP 端口 |
+| `ARCHIVER_HOST_DATA` | 否 | `./data` | 主机上保存媒体的目录 |
+| `PUID` / `PGID` | Linux / NAS | `1000` | 容器进程使用的用户和用户组 |
 
-| Variable | Required | Default | Description |
-|---|---:|---|---|
-| `TELEGRAM_BOT_TOKEN` | Yes | — | Token created by BotFather |
-| `TELEGRAM_ALLOWED_USERS` | Recommended | empty | Comma-separated Telegram numeric user IDs; empty allows anyone who knows the Bot |
-| `ARCHIVER_CATEGORIES` | No | `favorites,reference,projects,archive` | Telegram archive buttons |
-| `ARCHIVER_DOWNLOAD_TIMEOUT` | No | `900` | Per-link timeout in seconds |
-| `ARCHIVER_HOST_DATA` | No | `./data` | Host folder mounted at `/data` by Compose |
-| `PUID` / `PGID` | Linux/NAS | `1000` | Container process user and group |
+自定义分类示例：
 
-## Update / 更新
+```dotenv
+ARCHIVER_CATEGORIES=稍后看,学习资料,项目素材,长期归档
+```
 
-Source build:
+这些名称只保存在你自己的 `.env` 中，不需要修改源码，也不会被提交到 GitHub。
+
+## 🔄 更新项目
+
+### 从源码构建
 
 ```bash
 git pull
 docker compose up -d --build
 ```
 
-GHCR image:
+### 使用 GHCR 镜像
 
 ```bash
 docker pull ghcr.io/zz1994125/telegram-media-archiver:latest
 docker rm -f telegram-media-archiver
-# Run the docker command from the deployment section again.
+# 再次执行上方 docker run 命令
 ```
 
-Downloaded files remain intact because they live in the mounted host folder.
+媒体文件保存在主机挂载目录中，更新或重建容器不会删除已归档内容。
 
-## Troubleshooting / 故障排查
+## 🧰 常见问题
 
-### Permission denied under `/data`
-
-Confirm that `ARCHIVER_HOST_DATA` exists and is writable by `PUID:PGID`.
-
-### The Bot does not respond
+<details>
+<summary><strong>Bot 没有响应</strong></summary>
 
 ```bash
 docker compose ps
 docker compose logs --tail=100
 ```
 
-Check the Bot token, outbound internet access, and `TELEGRAM_ALLOWED_USERS`.
+检查 Bot Token、服务器外网连接和 `TELEGRAM_ALLOWED_USERS`。
 
-### A platform stopped downloading
+</details>
 
-Pull or rebuild the latest image. If the post requires login, age confirmation, CAPTCHA, or a private account, the public edition may not be able to access it.
+<details>
+<summary><strong>/data 出现 Permission denied</strong></summary>
 
-### Download succeeds but archiving fails
+确认 `ARCHIVER_HOST_DATA` 已存在，并且 `PUID:PGID` 对该目录拥有读写权限。
 
-Verify that the host data folder is mounted at `/data` and has not been moved manually while the Bot is running.
+</details>
 
-### Send to Telegram says the file is too large
+<details>
+<summary><strong>某个平台突然无法下载</strong></summary>
 
-The public Telegram Bot API currently limits uploaded videos and general files to 50 MB. The original file remains in the archive. A self-hosted Local Bot API Server can raise this ceiling, but it is intentionally outside the one-container default setup.
+先拉取或构建最新镜像。若链接需要登录、Cookie、验证码、年龄确认或私有账号权限，当前公开版可能无法访问。
 
-## Security
+</details>
 
-- Never commit `.env`, cookies, downloaded media or logs.
-- Revoke a Telegram token immediately if it ever appears in source code or Git history.
-- Configure `TELEGRAM_ALLOWED_USERS` before sharing the Bot username.
-- Keep the container and `yt-dlp` current.
-- Only download content you own or are authorized to archive.
+<details>
+<summary><strong>Send to Telegram 提示文件太大</strong></summary>
 
-## Development
+文件仍安全保存在归档目录中。默认实现遵守 Telegram 公共 Bot API 的 50 MB 上传限制。
 
-No application dependencies are required for unit tests:
+</details>
+
+<details>
+<summary><strong>为什么不能部署到 GitHub Pages</strong></summary>
+
+Telegram Bot 需要长期运行并持续接收消息，而 GitHub Pages 只能提供静态网页。请使用 NAS、树莓派、VPS 或常开电脑运行容器。
+
+</details>
+
+## 🔐 安全与使用说明
+
+- 不要提交 `.env`、Bot Token、Cookie、下载文件或运行日志。
+- 如果 Token 曾出现在代码或 Git 历史中，请立即通过 BotFather 撤销并重新生成。
+- 对外分享 Bot 用户名前，请配置 `TELEGRAM_ALLOWED_USERS`。
+- 仅下载自己拥有或已获授权保存的内容，并遵守目标平台条款和当地法律。
+- 本项目不提供平台限制绕过、付费内容破解或私有账号访问功能。
+
+## 🛠 开发与测试
+
+项目测试不需要安装额外 Python 依赖：
 
 ```bash
 python -m unittest -v
 python -m py_compile app.py
 ```
 
-Docker provides `yt-dlp` and FFmpeg at runtime.
+Docker 镜像在运行时提供 `yt-dlp` 和 FFmpeg。
 
-## Contributing
+## 🤝 参与贡献
 
-Bug reports should include the platform, a public example URL when possible, the container version, and sanitized logs. Never post tokens or cookies in an issue.
+欢迎提交 Issue 和 Pull Request。反馈下载问题时，请提供：
 
-The most useful contributions are small platform fixes, reproducible failing links, documentation improvements, and deployment reports from different NAS devices.
+- 平台名称和公开示例链接
+- 使用的镜像或提交版本
+- 已删除 Token、Cookie、用户名和本地路径的日志
 
-## Repository metadata / 建议的 GitHub 信息
+最有价值的贡献包括：可复现的平台兼容修复、不同 NAS / 设备的部署反馈、文档改进和小而清晰的功能修复。
 
-**Description**
+## 🙏 致谢
 
-> Self-hosted Telegram media downloader and NAS archiver for YouTube, Bilibili, TikTok, Douyin and Xiaohongshu/RedNote.
+Telegram Media Archiver 的早期本地工作流由多个开源项目组合、验证并逐步重构而来。感谢这些项目及其维护者：
 
-**Topics**
+**当前开源版直接依赖**
 
-`telegram-bot`, `media-downloader`, `social-media-downloader`, `media-archiver`, `yt-dlp`, `self-hosted`, `nas`, `docker`, `video-downloader`, `bilibili-downloader`, `tiktok-downloader`, `douyin-downloader`, `xiaohongshu-downloader`, `rednote-downloader`
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp)：跨平台媒体下载与元数据提取
+- [FFmpeg](https://github.com/FFmpeg/FFmpeg)：音视频合并与格式处理
+- [Model Context Protocol Python SDK](https://github.com/modelcontextprotocol/python-sdk)：MCP Server 与 Streamable HTTP 支持
 
-## License
+**早期本地工作流集成与参考**
 
-[MIT](LICENSE)
+- [XHS-Downloader](https://github.com/JoeanAmier/XHS-Downloader)：小红书内容解析、下载与动态资源补充
+- [wanyi-watermark](https://github.com/Ryan7t/wanyi-watermark)：早期抖音与小红书解析链路
+- [douyin-mcp-server](https://github.com/yzfly/douyin-mcp-server)：`wanyi-watermark` 标明的上游基础项目
+
+当前公开版没有直接复制这些项目的私有配置或本地定制代码；具体依赖和许可证以各项目仓库为准。
+
+## 📄 开源许可
+
+本项目采用 [MIT License](LICENSE)。

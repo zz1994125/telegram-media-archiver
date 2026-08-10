@@ -12,7 +12,9 @@ import secrets
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -33,10 +35,14 @@ CATEGORIES = [
     ).split(",") if value.strip()
 ]
 DOWNLOAD_TIMEOUT = int(os.getenv("ARCHIVER_DOWNLOAD_TIMEOUT", "900"))
+MCP_HOST = os.getenv("MCP_HOST", "127.0.0.1")
+MCP_PORT = int(os.getenv("MCP_PORT", "8000"))
+MCP_TRANSPORT = os.getenv("MCP_TRANSPORT", "streamable-http")
 MAX_UPLOAD_BYTES = 50_000_000
 MAX_PHOTO_BYTES = 10_000_000
 STATE_FILE = DATA_DIR / ".telegram-media-archiver-state.json"
 URL_RE = re.compile(r"https?://[^\s<>\"']+", re.I)
+DOWNLOAD_LOCK = threading.Lock()
 
 PLATFORMS = {
     "youtube.com": "youtube", "youtu.be": "youtube",
@@ -258,6 +264,90 @@ def move_item(path_text: str, category: str) -> Path:
     return Path(shutil.move(str(source), destination))
 
 
+def data_path(path_text: str) -> Path:
+    path = Path(path_text)
+    resolved = (path if path.is_absolute() else DATA_DIR / path).resolve()
+    if not resolved.is_relative_to(DATA_DIR):
+        raise ValueError("Path must stay inside the data directory")
+    return resolved
+
+
+def mcp_download_media(url: str) -> dict[str, str]:
+    """Download one public media URL into the archive inbox."""
+    # ponytail: serialize downloads for small NAS installs; add a queue if throughput matters.
+    with DOWNLOAD_LOCK:
+        path = run_download(url)
+    return {
+        "status": "saved",
+        "platform": platform_for(url),
+        "path": str(path.relative_to(DATA_DIR)),
+    }
+
+
+def mcp_list_archive(category: str = "", limit: int = 20) -> list[dict[str, str]]:
+    """List recently saved archive items, optionally under one category."""
+    root = data_path(category) if category else DATA_DIR
+    if not root.exists():
+        return []
+    limit = max(1, min(limit, 100))
+    source_files = sorted(
+        root.rglob("source.url"), key=lambda item: item.stat().st_mtime, reverse=True
+    )[:limit]
+    items = []
+    for source_file in source_files:
+        folder = source_file.parent
+        relative = folder.relative_to(DATA_DIR)
+        lines = source_file.read_text(encoding="utf-8").splitlines()
+        items.append({
+            "title": folder.name,
+            "category": relative.parts[0] if relative.parts else "",
+            "path": str(relative),
+            "source_url": lines[0] if lines else "",
+        })
+    return items
+
+
+def mcp_archive_media(path: str, category: str) -> dict[str, str]:
+    """Move one saved item into a configured archive category."""
+    if category not in CATEGORIES:
+        raise ValueError(f"Category must be one of: {', '.join(CATEGORIES)}")
+    destination = move_item(str(data_path(path)), category)
+    return {"status": "archived", "path": str(destination.relative_to(DATA_DIR))}
+
+
+def create_mcp_server():
+    try:
+        from mcp.server import MCPServer
+    except ImportError as error:
+        raise SystemExit("MCP support requires the 'mcp' package") from error
+
+    server = MCPServer(
+        "telegram-media-archiver",
+        description="Download and organize public media links in a local or NAS archive.",
+    )
+    server.tool(name="download_media")(mcp_download_media)
+    server.tool(name="list_archive")(mcp_list_archive)
+    server.tool(name="archive_media")(mcp_archive_media)
+    return server
+
+
+def run_mcp() -> None:
+    server = create_mcp_server()
+
+    if MCP_TRANSPORT == "stdio":
+        server.run("stdio")
+    elif MCP_TRANSPORT == "streamable-http":
+        server.run(
+            "streamable-http",
+            host=MCP_HOST,
+            port=MCP_PORT,
+            stateless_http=True,
+            json_response=True,
+        )
+    else:
+        raise SystemExit("MCP_TRANSPORT must be 'stdio' or 'streamable-http'")
+
+
 def authorized(user_id: int) -> bool:
     return not ALLOWED_USERS or user_id in ALLOWED_USERS
 
@@ -349,4 +439,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    run_mcp() if sys.argv[1:] == ["mcp"] else main()

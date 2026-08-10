@@ -6,3 +6,17 @@ services:
     env_file: .env
     volumes:
       - ${ARCHIVER_HOST_DATA:-./data}:/data
+
+  telegram-media-mcp:
+    build: .
+    profiles: [mcp]
+    restart: unless-stopped
+    command: ["python", "-u", "/app/app.py", "mcp"]
+    user: ${PUID:-1000}:${PGID:-1000}
+    env_file: .env
+    environment:
+      MCP_HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:${MCP_PORT:-8000}:${MCP_PORT:-8000}"
+    volumes:
+      - ${ARCHIVER_HOST_DATA:-./data}:/data
