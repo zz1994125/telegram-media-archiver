@@ -2,7 +2,7 @@ FROM python:3.13-slim
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
-    && pip install --no-cache-dir yt-dlp \
+    && pip install --no-cache-dir yt-dlp "mcp==2.0.0" \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

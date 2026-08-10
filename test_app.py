@@ -31,6 +31,21 @@ class CoreTests(unittest.TestCase):
                 moved = app.move_item(str(source), "reference")
             self.assertEqual(moved, root / "reference" / "2026-08-10" / "clip")
 
+    def test_mcp_archive_helpers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            item = root / "inbox" / "2026-08-10" / "Example"
+            item.mkdir(parents=True)
+            (item / "source.url").write_text("https://example.com/video\n", encoding="utf-8")
+
+            with patch.object(app, "DATA_DIR", root):
+                listed = app.mcp_list_archive()
+                self.assertEqual(listed[0]["path"], "inbox/2026-08-10/Example")
+                moved = app.mcp_archive_media(listed[0]["path"], "favorites")
+                self.assertEqual(moved["path"], "favorites/2026-08-10/Example")
+                with self.assertRaises(ValueError):
+                    app.mcp_archive_media(moved["path"], "private-local-category")
+
     def test_send_button_and_media_selection(self):
         self.assertEqual(app.archive_keyboard("abc")[0][0]["callback_data"], "send:abc")
         with tempfile.TemporaryDirectory() as directory:
