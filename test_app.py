@@ -1,0 +1,81 @@
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+import app
+
+
+class CoreTests(unittest.TestCase):
+    def test_extract_and_classify(self):
+        self.assertEqual(
+            app.extract_urls("one https://youtu.be/abc, again https://youtu.be/abc"),
+            ["https://youtu.be/abc"],
+        )
+        self.assertEqual(app.platform_for("https://m.youtube.com/watch?v=1"), "youtube")
+
+    def test_sanitize(self):
+        self.assertEqual(app.sanitize('../bad: name?.mp4'), 'bad name.mp4')
+
+    def test_private_url_is_blocked(self):
+        with patch("app.socket.getaddrinfo", return_value=[(2, 1, 6, "", ("127.0.0.1", 443))]):
+            with self.assertRaisesRegex(ValueError, "Private"):
+                app.validate_url("http://localhost/admin")
+
+    def test_move_stays_in_data_dir(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            source = root / "inbox" / "2026-08-10" / "clip"
+            source.mkdir(parents=True)
+            with patch.object(app, "DATA_DIR", root):
+                moved = app.move_item(str(source), "reference")
+            self.assertEqual(moved, root / "reference" / "2026-08-10" / "clip")
+
+    def test_send_button_and_media_selection(self):
+        self.assertEqual(app.archive_keyboard("abc")[0][0]["callback_data"], "send:abc")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            folder = root / "inbox" / "2026-08-10" / "clip"
+            folder.mkdir(parents=True)
+            video = folder / "clip.mp4"
+            video.touch()
+            (folder / "thumbnail.webp").touch()
+            with patch.object(app, "DATA_DIR", root):
+                self.assertEqual(app.media_files(str(folder)), [video])
+
+    def test_images_are_sent_when_no_video_exists(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            folder = root / "inbox" / "2026-08-10" / "post"
+            folder.mkdir(parents=True)
+            first = folder / "1.jpg"
+            second = folder / "2.png"
+            first.touch()
+            second.touch()
+            with patch.object(app, "DATA_DIR", root):
+                self.assertEqual(app.media_files(str(folder)), [first, second])
+
+    def test_rejected_streaming_video_falls_back_to_document(self):
+        class FakeBot:
+            def __init__(self):
+                self.calls = []
+
+            def send_file(self, chat_id, path, method, field):
+                self.calls.append((method, field))
+                if method == "sendVideo":
+                    raise RuntimeError("unsupported codec")
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            folder = root / "inbox" / "2026-08-10" / "clip"
+            folder.mkdir(parents=True)
+            (folder / "clip.mp4").write_bytes(b"video")
+            bot = FakeBot()
+            with patch.object(app, "DATA_DIR", root):
+                sent, skipped = app.send_saved_media(bot, 1, str(folder))
+            self.assertEqual((sent, skipped), (1, []))
+            self.assertEqual(bot.calls, [("sendVideo", "video"), ("sendDocument", "document")])
+
+
+if __name__ == "__main__":
+    unittest.main()

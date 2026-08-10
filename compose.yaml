@@ -1,0 +1,8 @@
+services:
+  telegram-media-archiver:
+    build: .
+    restart: unless-stopped
+    user: ${PUID:-1000}:${PGID:-1000}
+    env_file: .env
+    volumes:
+      - ${ARCHIVER_HOST_DATA:-./data}:/data
