@@ -1,12 +1,32 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 import app
+from douyin_adapter import parse_pace_html
 
 
 class CoreTests(unittest.TestCase):
+    def test_douyin_pace_parser_checks_id_and_preserves_live_photo(self):
+        detail = {
+            "awemeId": "123", "desc": "caption", "authorInfo": {"nickname": "author"},
+            "images": [{"urlList": ["https://img/1.webp", "https://img/1.jpeg"],
+                        "video": {"playAddr": [{"src": "https://video/1.mp4"}]}}],
+        }
+        summary = {"awemeId": "123", "desc": "", "images": [{"urlList": ["https://img/1.webp"]}]}
+        payload = ["$", "$L", None, {"awemeId": "123", "aweme": {"detail": summary},
+                                      "full": {"awemeId": "123", "aweme": {"detail": detail}}}]
+        chunk = "7:" + json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+        script = f"self.__pace_f.push([1,{json.dumps(chunk)}])"
+        result = parse_pace_html(f"<script>{script}</script>", "123")
+        self.assertEqual(result["author"], "author")
+        self.assertEqual(result["images"][0]["url"], "https://img/1.jpeg")
+        self.assertEqual(result["images"][0]["live_url"], "https://video/1.mp4")
+        with self.assertRaisesRegex(ValueError, "did not match"):
+            parse_pace_html(f"<script>{script}</script>", "456")
+
     def test_extract_and_classify(self):
         self.assertEqual(
             app.extract_urls("one https://youtu.be/abc, again https://youtu.be/abc"),

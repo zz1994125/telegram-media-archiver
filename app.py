@@ -45,6 +45,7 @@ URL_RE = re.compile(r"https?://[^\s<>\"']+", re.I)
 DOWNLOAD_LOCK = threading.Lock()
 
 PLATFORMS = {
+    "douyin.com": "douyin",
     "youtube.com": "youtube", "youtu.be": "youtube",
     "bilibili.com": "bilibili", "b23.tv": "bilibili",
     "tiktok.com": "tiktok", "instagram.com": "instagram",
@@ -219,12 +220,16 @@ def run_download(url: str) -> Path:
 
     with tempfile.TemporaryDirectory(dir=temp_root) as temp_name:
         temp = Path(temp_name)
-        command = [
+        if platform_for(url) == "douyin":
+            adapter = Path(__file__).with_name("douyin_adapter.py")
+            command = [sys.executable, str(adapter), url, "--download-dir", str(temp)]
+        else:
+            command = [
             "yt-dlp", "--no-playlist", "--no-progress", "--newline",
             "--write-info-json", "--write-description", "--write-thumbnail",
             "--merge-output-format", "mp4",
             "--output", str(temp / "%(title).120B [%(id)s].%(ext)s"), url,
-        ]
+            ]
         result = subprocess.run(
             command, text=True, capture_output=True, timeout=DOWNLOAD_TIMEOUT,
         )
