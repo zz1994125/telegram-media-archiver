@@ -33,6 +33,40 @@ class _Scripts(HTMLParser):
             self.current = None
 
 
+class _RenderedVideo(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.canonical = ""
+        self.in_title = False
+        self.in_video = False
+        self.title = []
+        self.sources = []
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "link" and "canonical" in attrs.get("rel", "").split():
+            self.canonical = attrs.get("href", "")
+        elif tag == "title":
+            self.in_title = True
+        elif tag == "video":
+            self.in_video = True
+            if source := _src(attrs.get("src")):
+                self.sources.append(source)
+        elif tag == "source" and self.in_video:
+            if source := _src(attrs.get("src")):
+                self.sources.append(source)
+
+    def handle_data(self, data):
+        if self.in_title:
+            self.title.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "title":
+            self.in_title = False
+        elif tag == "video":
+            self.in_video = False
+
+
 def _src(value) -> str:
     if isinstance(value, str):
         return value if value.startswith(("http://", "https://")) else ""
@@ -88,7 +122,19 @@ def parse_pace_html(html: str, expected_id: str) -> dict:
 
     detail = max(details, key=media_score) if details else None
 
-    if not detail or str(detail.get("awemeId", "")) != expected_id:
+    if not detail:
+        rendered = _RenderedVideo()
+        rendered.feed(html)
+        if not re.search(rf"/(?:video|note)/{re.escape(expected_id)}(?:\D|$)", rendered.canonical):
+            raise ValueError(f"page data did not match Douyin work {expected_id}")
+        video_url = next((source for source in rendered.sources if ".mp3" not in source), "")
+        if not video_url:
+            raise ValueError("page data contained no downloadable media")
+        caption = "".join(rendered.title).removesuffix(" - 抖音").strip() or f"douyin_{expected_id}"
+        return {"status": "success", "type": "video", "video_id": expected_id,
+                "title": caption, "caption": caption, "author": "", "url": video_url}
+
+    if str(detail.get("awemeId", "")) != expected_id:
         raise ValueError(f"page data did not match Douyin work {expected_id}")
 
     caption = detail.get("desc") or detail.get("itemTitle") or detail.get("caption") or f"douyin_{expected_id}"
@@ -118,18 +164,50 @@ def resolve(url: str) -> dict:
     from playwright.sync_api import sync_playwright
 
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
-        page = browser.new_page()
-        try:
-            page.goto(url, wait_until="domcontentloaded", timeout=60_000)
-            page.wait_for_selector("script", state="attached", timeout=30_000)
-            page.wait_for_timeout(3_000)
-            match = re.search(r"/(?:note|video)/(\d+)", page.url)
-            if not match:
-                raise ValueError(f"unexpected Douyin destination: {page.url}")
-            return parse_pace_html(page.content(), match.group(1))
-        finally:
-            browser.close()
+        for attempt in range(2):
+            browser = playwright.chromium.launch(headless=True)
+            page = browser.new_page()
+            media_urls = []
+            page.on("response", lambda response: media_urls.append(response.url)
+                    if "douyinvod" in response.url or "/aweme/v1/play/" in response.url else None)
+            try:
+                page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+                page.wait_for_selector("script", state="attached", timeout=30_000)
+                page.wait_for_timeout(3_000)
+                match = re.search(r"/(?:note|video)/(\d+)", page.url)
+                if not match:
+                    raise ValueError(f"unexpected Douyin destination: {page.url}")
+                try:
+                    return parse_pace_html(page.content(), match.group(1))
+                except ValueError as error:
+                    if "/video/" not in page.url:
+                        raise error
+                    video_url = ""
+                    for _ in range(45):
+                        video_url = next((candidate for candidate in media_urls
+                                          if re.search(rf"[?&]__vid={re.escape(match.group(1))}(?:&|$)", candidate)), "")
+                        if not video_url:
+                            video_url = page.evaluate("""() => {
+                            const element = document.querySelector("[data-e2e='player-container'] video")
+                                || document.querySelector("video");
+                            if (!element) return '';
+                            const url = [...element.querySelectorAll('source')].map(source => source.src)
+                                .find(value => value.startsWith('http')) || element.currentSrc || element.src;
+                            return url.startsWith('http') ? url : '';
+                        }""")
+                        if _src(video_url):
+                            break
+                        page.wait_for_timeout(1_000)
+                    if not _src(video_url) or ".mp3" in video_url:
+                        raise error
+                    caption = page.title().removesuffix(" - 抖音").strip() or f"douyin_{match.group(1)}"
+                    return {"status": "success", "type": "video", "video_id": match.group(1),
+                            "title": caption, "caption": caption, "author": "", "url": video_url}
+            except Exception:
+                if attempt == 1:
+                    raise
+            finally:
+                browser.close()
 
 
 def download(result: dict, destination: Path) -> None:

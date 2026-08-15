@@ -2,10 +2,11 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import app
-from douyin_adapter import parse_pace_html
+from douyin_adapter import parse_pace_html, resolve
 
 
 class CoreTests(unittest.TestCase):
@@ -26,6 +27,46 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(result["images"][0]["live_url"], "https://video/1.mp4")
         with self.assertRaisesRegex(ValueError, "did not match"):
             parse_pace_html(f"<script>{script}</script>", "456")
+
+    def test_douyin_parser_uses_verified_rendered_video_when_pace_has_no_aweme(self):
+        html = """
+        <html><head>
+          <title>Rendered caption - 抖音</title>
+          <link rel="canonical" href="https://www.douyin.com/video/123">
+        </head><body><video><source src="https://video/123.mp4?a=1&amp;b=2"></video></body></html>
+        """
+        result = parse_pace_html(html, "123")
+        self.assertEqual(result["type"], "video")
+        self.assertEqual(result["caption"], "Rendered caption")
+        self.assertEqual(result["url"], "https://video/123.mp4?a=1&b=2")
+        with self.assertRaisesRegex(ValueError, "did not match"):
+            parse_pace_html(html, "456")
+
+    def test_douyin_resolver_retries_with_a_fresh_browser(self):
+        first_page = MagicMock()
+        first_page.goto.side_effect = RuntimeError("transient load failure")
+        second_page = MagicMock(url="https://www.douyin.com/video/123")
+        second_page.content.return_value = "<html></html>"
+        second_page.evaluate.return_value = ""
+        second_page.title.return_value = "caption - 抖音"
+        second_page.on.side_effect = lambda event, callback: callback(
+            SimpleNamespace(url="https://video.douyinvod.com/file.mp4?__vid=123")
+        )
+        browsers = []
+        for page in (first_page, second_page):
+            browser = MagicMock()
+            browser.new_page.return_value = page
+            browsers.append(browser)
+        chromium = MagicMock()
+        chromium.launch.side_effect = browsers
+        context = MagicMock()
+        context.__enter__.return_value = SimpleNamespace(chromium=chromium)
+        sync_api = MagicMock()
+        sync_api.sync_playwright.return_value = context
+        with patch.dict("sys.modules", {"playwright": MagicMock(), "playwright.sync_api": sync_api}):
+            self.assertEqual(resolve("https://v.douyin.com/test/")["url"],
+                             "https://video.douyinvod.com/file.mp4?__vid=123")
+        self.assertEqual(chromium.launch.call_count, 2)
 
     def test_extract_and_classify(self):
         self.assertEqual(
