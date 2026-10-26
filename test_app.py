@@ -10,6 +10,27 @@ from douyin_adapter import parse_pace_html, resolve
 
 
 class CoreTests(unittest.TestCase):
+    def test_download_keeps_child_temp_files_on_data_volume(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+
+            def download(command, **kwargs):
+                temp = Path(kwargs["env"]["TMPDIR"])
+                self.assertEqual(temp.parent, root / ".tmp")
+                self.assertTrue(temp.is_dir())
+                self.assertEqual(kwargs["env"]["TMP"], str(temp))
+                self.assertEqual(kwargs["env"]["TEMP"], str(temp))
+                self.assertEqual(kwargs["env"]["ARCHIVER_TEST_ENV"], "preserved")
+                (temp / "clip.mp4").write_bytes(b"video")
+                return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+            with patch.object(app, "DATA_DIR", root), patch("app.validate_url"), \
+                    patch.dict("app.os.environ", {"ARCHIVER_TEST_ENV": "preserved"}), \
+                    patch("app.subprocess.run", side_effect=download):
+                folder = app.run_download("https://www.douyin.com/video/123")
+            self.assertEqual((folder / "clip.mp4").read_bytes(), b"video")
+            self.assertEqual(list((root / ".tmp").iterdir()), [])
+
     def test_douyin_pace_parser_checks_id_and_preserves_live_photo(self):
         detail = {
             "awemeId": "123", "desc": "caption", "authorInfo": {"nickname": "author"},

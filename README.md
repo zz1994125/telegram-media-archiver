@@ -305,6 +305,13 @@ docker compose logs --tail=100
 </details>
 
 <details>
+<summary><strong>下载时报 no space left on device</strong></summary>
+
+下载器及解析浏览器的临时文件会放在 `ARCHIVER_DATA_DIR/.tmp` 中，随任务结束自动清理。使用外置盘或 NAS 时，请确认归档目录或 Docker 的 `/data` 挂载指向该存储，并有足够空间；仅将成品放到外置盘不能解决系统临时目录满的问题。
+
+</details>
+
+<details>
 <summary><strong>为什么不能部署到 GitHub Pages</strong></summary>
 
 Telegram Bot 需要长期运行并持续接收消息，而 GitHub Pages 只能提供静态网页。请使用 NAS、树莓派、VPS 或常开电脑运行容器。

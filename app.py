@@ -232,6 +232,7 @@ def run_download(url: str) -> Path:
             ]
         result = subprocess.run(
             command, text=True, capture_output=True, timeout=DOWNLOAD_TIMEOUT,
+            env={**os.environ, "TMPDIR": str(temp), "TMP": str(temp), "TEMP": str(temp)},
         )
         media = [path for path in temp.iterdir() if path.is_file() and not path.name.endswith((".json", ".description", ".part", ".ytdl"))]
         if result.returncode or not media:
