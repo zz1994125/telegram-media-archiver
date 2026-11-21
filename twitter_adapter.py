@@ -5,6 +5,8 @@ import http.client
 import json
 import re
 import shutil
+import socket
+import ssl
 import subprocess
 import time
 import urllib.error
@@ -61,17 +63,15 @@ def fetch(url, target=None):
                 if not size or (expected is not None and size != int(expected)):
                     raise http.client.IncompleteRead(b"", int(expected or 1))
                 return
-        except (urllib.error.URLError, TimeoutError, ConnectionError,
+        except (urllib.error.URLError, TimeoutError, socket.timeout, ssl.SSLError, ConnectionError,
                 http.client.IncompleteRead, json.JSONDecodeError) as error:
             if isinstance(error, urllib.error.HTTPError):
                 error.close()
                 if error.code not in {408, 429, 500, 502, 503, 504}:
                     raise RuntimeError(f"{stage} failed: HTTP {error.code}") from error
-            if target is not None and isinstance(error, http.client.IncompleteRead):
+            if target is not None:
                 return curl_media(url, target)
             if attempt == 2:
-                if target is not None:
-                    return curl_media(url, target)
                 raise RuntimeError(f"{stage} failed after 3 attempts: {error}") from error
             time.sleep(attempt + 1)
 

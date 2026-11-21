@@ -111,7 +111,7 @@ class TwitterTests(unittest.TestCase):
                 self.assertNotIn('--location', command)
                 target.write_bytes(b'complete image')
                 return SimpleNamespace(returncode=0, stdout='200 image/jpeg', stderr='')
-            with patch.object(x, 'open_url', side_effect=TimeoutError), \
+            with patch.object(x, 'open_url', side_effect=x.socket.timeout('read timed out')), \
                     patch.object(x.time, 'sleep'), patch.object(x.subprocess, 'run', side_effect=run):
                 x.fetch('https://pbs.twimg.com/a.jpg', target)
                 self.assertEqual(target.read_bytes(), b'complete image')
