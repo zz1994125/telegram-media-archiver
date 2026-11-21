@@ -5,6 +5,7 @@ import http.client
 import json
 import re
 import shutil
+import subprocess
 import time
 import urllib.error
 import urllib.parse
@@ -22,6 +23,24 @@ def open_url(url):
         urllib.request.Request(url, headers={"User-Agent": "TelegramMediaArchiver/1.0"}),
         timeout=45,
     )
+
+
+def curl_media(url, target):
+    # Some local TLS routes silently truncate urllib responses; curl checks transfer length.
+    result = subprocess.run([
+        "curl", "--http1.1", "--silent", "--show-error", "--fail",
+        "--proto", "=https", "--retry", "2", "--retry-all-errors",
+        "--retry-delay", "1", "--connect-timeout", "20", "--max-time", "45",
+        "--retry-max-time", "90", "--output", str(target),
+        "--write-out", "%{http_code} %{content_type}", url,
+    ], capture_output=True, text=True, timeout=140)
+    status, _, content_type = result.stdout.strip().partition(" ")
+    if result.returncode or status != "200":
+        raise RuntimeError(f"Media download failed: curl exit {result.returncode}, HTTP {status}")
+    if not content_type.startswith(("image/", "video/", "application/octet-stream")):
+        raise ValueError("Media service returned a non-media response")
+    if not target.is_file() or not target.stat().st_size:
+        raise ValueError("Empty media file")
 
 
 def fetch(url, target=None):
@@ -48,7 +67,11 @@ def fetch(url, target=None):
                 error.close()
                 if error.code not in {408, 429, 500, 502, 503, 504}:
                     raise RuntimeError(f"{stage} failed: HTTP {error.code}") from error
+            if target is not None and isinstance(error, http.client.IncompleteRead):
+                return curl_media(url, target)
             if attempt == 2:
+                if target is not None:
+                    return curl_media(url, target)
                 raise RuntimeError(f"{stage} failed after 3 attempts: {error}") from error
             time.sleep(attempt + 1)
 

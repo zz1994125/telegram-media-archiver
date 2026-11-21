@@ -70,7 +70,7 @@ Telegram 链接 → yt-dlp 下载 → 本地 / NAS 保存 → Telegram 按钮预
 
 > 平台接口会变化。下载失败时，请先更新镜像并确认链接无需登录、验证码、年龄验证或私有账号权限。
 
-X / Twitter 通过 [FxTwitter 公开 API](https://docs.fxembed.com/api/introduction/) 解析，无需 Cookie；解析和单个媒体下载遇到超时、连接中断或临时服务错误时最多尝试 3 次，并检查媒体响应长度。依赖该服务和 X 媒体 CDN 可访问。不支持私密帖子、账号主页或整条时间线。
+X / Twitter 通过 [FxTwitter 公开 API](https://docs.fxembed.com/api/introduction/) 解析，无需 Cookie；解析和单个媒体下载遇到超时、连接中断或临时服务错误时最多尝试 3 次，并检查媒体响应长度；媒体传输持续失败时用 curl 兜底，防止残缺文件被当作成功。依赖该服务和 X 媒体 CDN 可访问。不支持私密帖子、账号主页或整条时间线。
 
 ## 🥣 快速开始
 

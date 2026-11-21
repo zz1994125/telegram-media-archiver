@@ -66,11 +66,13 @@ class TwitterTests(unittest.TestCase):
             TimeoutError('lookup timeout'),
             response(json.dumps(payload).encode(), {}),
             response(b'short', {'Content-Type': 'image/jpeg', 'Content-Length': '8'}),
-            response(b'complete', {'Content-Type': 'image/jpeg', 'Content-Length': '8'}),
         ]
+        def fallback(url, target):
+            target.write_bytes(b'complete')
         with tempfile.TemporaryDirectory() as folder, patch.object(x, 'open_url', side_effect=replies), \
-                patch.object(x.time, 'sleep'):
+                patch.object(x.time, 'sleep'), patch.object(x, 'curl_media', side_effect=fallback) as curl:
             x.download('https://x.com/u/status/123', folder)
+            curl.assert_called_once()
             self.assertEqual((Path(folder) / '123_01.jpg').read_bytes(), b'complete')
             self.assertFalse(list(Path(folder).glob('*.part')))
 
@@ -95,10 +97,29 @@ class TwitterTests(unittest.TestCase):
             result.headers = {}
             return result
         with tempfile.TemporaryDirectory() as folder, patch.object(x, 'open_url', side_effect=response), \
-                patch.object(x.time, 'sleep'):
-            with self.assertRaisesRegex(RuntimeError, 'Media download failed after 3'):
+                patch.object(x.time, 'sleep'), patch.object(x, 'curl_media', side_effect=RuntimeError('curl failed')) as fallback:
+            with self.assertRaisesRegex(RuntimeError, 'curl failed'):
                 x.download('https://x.com/u/status/123', folder)
             self.assertFalse(list(Path(folder).glob('*.jpg')))
+            fallback.assert_called_once()
+
+    def test_curl_fallback_and_validation(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder) / 'image.part'
+            def run(command, **kwargs):
+                self.assertNotIn('--location', command)
+                target.write_bytes(b'complete image')
+                return SimpleNamespace(returncode=0, stdout='200 image/jpeg', stderr='')
+            with patch.object(x, 'open_url', side_effect=TimeoutError), \
+                    patch.object(x.time, 'sleep'), patch.object(x.subprocess, 'run', side_effect=run):
+                x.fetch('https://pbs.twimg.com/a.jpg', target)
+                self.assertEqual(target.read_bytes(), b'complete image')
+            for code, output in ((18, '200 image/jpeg'), (0, '302 text/html'), (0, '200 text/html')):
+                with self.subTest(code=code, output=output), patch.object(x.subprocess, 'run',
+                        return_value=SimpleNamespace(returncode=code, stdout=output, stderr='')), \
+                        self.assertRaises((RuntimeError, ValueError)):
+                    x.curl_media('https://pbs.twimg.com/a.jpg', target)
 
     def test_app_dispatch(self):
         from types import SimpleNamespace

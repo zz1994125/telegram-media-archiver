@@ -3,7 +3,7 @@ FROM python:3.13-slim
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+    && apt-get install -y --no-install-recommends ffmpeg ca-certificates curl \
     && pip install --no-cache-dir yt-dlp "mcp==2.0.0" playwright \
     && playwright install --with-deps chromium \
     && rm -rf /var/lib/apt/lists/*
