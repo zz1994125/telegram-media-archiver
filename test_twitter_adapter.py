@@ -86,7 +86,7 @@ class TwitterTests(unittest.TestCase):
     @staticmethod
     def raise_http(code):
         import urllib.error
-        raise urllib.error.HTTPError('https://api.fxtwitter.com', code, 'failure', {}, None)
+        raise urllib.error.HTTPError('https://api.fxtwitter.com', code, 'failure', {}, io.BytesIO())
 
     def test_exhausted_media_retry_does_not_finalize(self):
         payload = self.payload([{'type': 'photo', 'url': 'https://pbs.twimg.com/a.jpg'}])
