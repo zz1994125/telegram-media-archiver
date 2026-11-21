@@ -11,6 +11,7 @@ RUN apt-get update \
 WORKDIR /app
 COPY app.py /app/app.py
 COPY douyin_adapter.py /app/douyin_adapter.py
+COPY twitter_adapter.py /app/twitter_adapter.py
 RUN useradd --create-home --uid 10001 archiver && mkdir /data && chown archiver:archiver /data
 USER archiver
 VOLUME ["/data"]

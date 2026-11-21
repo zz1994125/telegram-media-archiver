@@ -220,8 +220,9 @@ def run_download(url: str) -> Path:
 
     with tempfile.TemporaryDirectory(dir=temp_root) as temp_name:
         temp = Path(temp_name)
-        if platform_for(url) == "douyin":
-            adapter = Path(__file__).with_name("douyin_adapter.py")
+        if platform_for(url) in {"douyin", "x"}:
+            adapter_name = "twitter_adapter.py" if platform_for(url) == "x" else "douyin_adapter.py"
+            adapter = Path(__file__).with_name(adapter_name)
             command = [sys.executable, str(adapter), url, "--download-dir", str(temp)]
         else:
             command = [
