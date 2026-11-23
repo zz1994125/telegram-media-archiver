@@ -62,13 +62,15 @@ Telegram 链接 → yt-dlp 下载 → 本地 / NAS 保存 → Telegram 按钮预
 | Bilibili | ✅ | `bilibili.com/video/...`、`b23.tv/...` |
 | TikTok Downloader | ✅ | `tiktok.com/@user/video/...` |
 | Instagram | ✅ | 公开 Reels、视频和帖子 |
-| X / Twitter | ✅ | 公开媒体帖子 |
+| X / Twitter | ✅ | 公开帖子的原图、多视频、动图；单帖全部媒体 |
 | Reddit / Vimeo / SoundCloud | ✅ | 由 `yt-dlp` 处理 |
 | 其他 `yt-dlp` 网站 | 🟡 | 尽力兼容，以 `yt-dlp` 实际支持为准 |
 | Douyin Downloader | 🧪 | 平台限制较多，公开链接可尝试，暂不保证稳定 |
 | Xiaohongshu / RedNote Downloader | 🧪 | 平台限制较多，公开链接可尝试，暂不保证稳定 |
 
 > 平台接口会变化。下载失败时，请先更新镜像并确认链接无需登录、验证码、年龄验证或私有账号权限。
+
+X / Twitter 通过 [FxTwitter 公开 API](https://docs.fxembed.com/api/introduction/) 解析，无需 Cookie；解析和单个媒体下载遇到超时、连接中断或临时服务错误时最多尝试 3 次，并检查媒体响应长度；媒体传输持续失败时用 curl 兜底，防止残缺文件被当作成功。依赖该服务和 X 媒体 CDN 可访问。不支持私密帖子、账号主页或整条时间线。
 
 ## 🥣 快速开始
 
@@ -301,6 +303,13 @@ docker compose logs --tail=100
 <summary><strong>Send to Telegram 提示文件太大</strong></summary>
 
 文件仍安全保存在归档目录中。默认实现遵守 Telegram 公共 Bot API 的 50 MB 上传限制。
+
+</details>
+
+<details>
+<summary><strong>下载时报 no space left on device</strong></summary>
+
+下载器及解析浏览器的临时文件会放在 `ARCHIVER_DATA_DIR/.tmp` 中，随任务结束自动清理。使用外置盘或 NAS 时，请确认归档目录或 Docker 的 `/data` 挂载指向该存储，并有足够空间；仅将成品放到外置盘不能解决系统临时目录满的问题。
 
 </details>
 
